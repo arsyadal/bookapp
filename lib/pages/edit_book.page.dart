@@ -27,9 +27,51 @@ class _EditBookPageState extends State<EditBookPage> {
     _titleController = TextEditingController(text: widget.book.title);
     _authorController = TextEditingController(text: widget.book.author);
     _genreController = TextEditingController(text: widget.book.genre);
-    _publishedYearController = TextEditingController(text: widget.book.publishedYear.toString());
+    _publishedYearController = TextEditingController(text: widget.book.publishedYear?.toString());
     _isbnController = TextEditingController(text: widget.book.isbn);
     _imageUrlController = TextEditingController(text: widget.book.imageUrl);
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _authorController.dispose();
+    _genreController.dispose();
+    _publishedYearController.dispose();
+    _isbnController.dispose();
+    _imageUrlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _updateBook() async {
+    if (_formKey.currentState!.validate()) {
+      final updatedBook = Book(
+        id: widget.book.id,
+        title: _titleController.text,
+        author: _authorController.text,
+        genre: _genreController.text,
+        publishedYear: int.tryParse(_publishedYearController.text),
+        isbn: _isbnController.text,
+        imageUrl: _imageUrlController.text,
+        isAvailable: widget.book.isAvailable, // Maintain the current availability status
+        borrowedBy: widget.book.borrowedBy,
+        borrowedAt: widget.book.borrowedAt,
+        createdAt: widget.book.createdAt,
+        updatedAt: DateTime.now(),
+      );
+
+      try {
+        await apiService.updateBook(updatedBook);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Book updated successfully')),
+        );
+        Navigator.pop(context);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update book')),
+        );
+      }
+    }
   }
 
   @override
@@ -37,6 +79,7 @@ class _EditBookPageState extends State<EditBookPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Edit Book'),
+        backgroundColor: Colors.blue, // Mengatur warna navbar menjadi biru
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -49,7 +92,7 @@ class _EditBookPageState extends State<EditBookPage> {
                 decoration: InputDecoration(labelText: 'Title'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a title';
+                    return 'Please enter the title';
                   }
                   return null;
                 },
@@ -59,7 +102,7 @@ class _EditBookPageState extends State<EditBookPage> {
                 decoration: InputDecoration(labelText: 'Author'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter an author';
+                    return 'Please enter the author';
                   }
                   return null;
                 },
@@ -67,19 +110,14 @@ class _EditBookPageState extends State<EditBookPage> {
               TextFormField(
                 controller: _genreController,
                 decoration: InputDecoration(labelText: 'Genre'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a genre';
-                  }
-                  return null;
-                },
               ),
               TextFormField(
                 controller: _publishedYearController,
                 decoration: InputDecoration(labelText: 'Published Year'),
+                keyboardType: TextInputType.number,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a published year';
+                  if (value != null && value.isNotEmpty && int.tryParse(value) == null) {
+                    return 'Please enter a valid year';
                   }
                   return null;
                 },
@@ -87,45 +125,19 @@ class _EditBookPageState extends State<EditBookPage> {
               TextFormField(
                 controller: _isbnController,
                 decoration: InputDecoration(labelText: 'ISBN'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter an ISBN';
-                  }
-                  return null;
-                },
               ),
               TextFormField(
                 controller: _imageUrlController,
                 decoration: InputDecoration(labelText: 'Image URL'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter an image URL';
-                  }
-                  return null;
-                },
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // Call API to update book
-                    apiService.updateBook(Book(
-                      id: widget.book.id,
-                      title: _titleController.text,
-                      author: _authorController.text,
-                      genre: _genreController.text,
-                      publishedYear: int.parse(_publishedYearController.text),
-                      isbn: _isbnController.text,
-                      imageUrl: _imageUrlController.text,
-                    ));
-                    Navigator.pop(context);
-                  }
-                },
-                child: Text('Save Changes'),
-                   style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue, // Mengatur warna tombol menjadi biru
-                  foregroundColor: Colors.white, // Mengatur warna teks menjadi putih
+                onPressed: _updateBook,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue, // Background color
+                  foregroundColor: Colors.white, // Text color
                 ),
+                child: Text('Update Book'),
               ),
             ],
           ),
